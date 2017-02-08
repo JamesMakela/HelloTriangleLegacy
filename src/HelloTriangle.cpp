@@ -2,7 +2,7 @@
 // Name        : OpenGL_Hello.cpp
 // Author      : James L. Makela
 // Version     : 0.1.1
-// Copyright   : It's mine, damnit!!
+// Copyright   : LGPL v3.0
 // Description : OpenGL Hello World in C++ 11 for Legacy OpenGL 2.1.
 //               Here is a simple-as-possible example of an OpenGL
 //               Program.
@@ -30,17 +30,6 @@
 //               find online.  And I was finally able to develop a version
 //               of the hello_triangle demo program that worked with the older
 //               APIs.
-//
-//               It's funny that I had to cobble this together in bits and
-//               pieces, that there were no legacy instructional tutorials
-//               that would have helped me through all this.  Surely I can't
-//               be the only person out there with old hardware who wants to
-//               get into OpenGL.
-//
-//               So I think I might put this up on GitHub in the hopes that
-//               The next developer who finds him/herself in a similar
-//               situation will have at least a slightly easier time than
-//               I did.
 //
 //============================================================================
 
