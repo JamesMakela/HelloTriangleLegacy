@@ -74,23 +74,30 @@ void key_callback(GLFWwindow* window,
 //                                     "    color = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 //                                     "}\n";
 
-const GLchar *vertexShaderSource = "#version 120\n"
-                                   "\n"
-                                   "in vec3 position;\n"
+const GLchar *vertexShaderSource = "#if __VERSION__ >= 140\n"
+                                   "    in vec3 position;\n"
+                                   "#else\n"
+                                   "    attribute vec3 position;\n"
+                                   "#endif\n"
                                    "\n"
                                    "void main()\n"
                                    "{\n"
                                    "    gl_Position = vec4(position, 1.0);\n"
                                    "}\n";
 
-const GLchar *fragmentShaderSource = "#version 120\n"
-                                     "\n"
-                                     "varying out vec4 out_color;"
+const GLchar *fragmentShaderSource = "#if __VERSION__ >= 140\n"
+                                     "    varying out vec4 out_color;\n"
+                                     "#endif\n"
                                      "\n"
                                      "void main()\n"
                                      "{\n"
+                                     "#if __VERSION__ >= 140\n"
                                      "    out_color = vec4(1.0f, 0.5f, 0.2f,\n"
                                      "                     1.0f);\n"
+                                     "#else\n"
+                                     "    gl_FragColor = vec4(1.0, 0.5, 0.2,\n"
+                                     "                        1.0);\n"
+                                     "#endif\n"
                                      "}\n";
 
 int main() {
@@ -124,6 +131,11 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
+
+    cout << "OpenGL version supported by this platform: "
+         << glGetString(GL_VERSION) << endl;
+    cout << "GLSL version supported by this platform: "
+         << glGetString(GL_SHADING_LANGUAGE_VERSION) << endl;
 
     // Note: glewInit() will fail if it is attempted before the current
     //       window context is made via glfwMakeContextCurrent()
