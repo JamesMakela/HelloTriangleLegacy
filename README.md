@@ -35,3 +35,9 @@ get into OpenGL.
 So I hope that the next developer who finds him/herself
 in a similar situation will find this and have at least a
 slightly easier time than I did.
+
+## Building the project ##
+
+This is a simple C++ project created in Eclipse CDT.  It has the project configuration files, and should be importable into a new workspace.  It shouldn't be too difficult for anyone familiar with Eclipse.
+
+However, it is a very simple project that could be converted to a number of other development environments.
