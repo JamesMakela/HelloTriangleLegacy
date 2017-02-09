@@ -1,35 +1,25 @@
 //============================================================================
-// Name        : OpenGL_Hello.cpp
+// Name        : HelloColorTriangle.cpp
 // Author      : James L. Makela
 // Version     : 0.1.1
 // Copyright   : LGPL v3.0
-// Description : OpenGL Hello World in C++ 11 for Legacy OpenGL 2.1.
-//               Here is a simple-as-possible example of an OpenGL
-//               Program.
+// Description : OpenGL colored triangle in C++ 11 for Legacy OpenGL 2.1.
+//               Another simple example of an OpenGL Program.
+//               Here we expand upon the HelloTriangle by adding a variable
+//               color gradient to it, sort of like a color select dialog
+//               would have.
 //
-//               I decided it was time to finally learn some of the ins
-//               and outs of OpenGL software development, and of course
-//               there were quite a few instructional online resources
-//               willing to give a few hints here and there. There happened
-//               to be a few online tutorials showcasing an OpenGL version
-//               of a "hello world" program named hello_triangle.cpp, which
-//               would put a triangle in a window, rendered by OpenGL.
+//               Techniques illustrated here are:
+//               - In addition to a vertex array buffer, we will introduce
+//                 a vertex color array buffer.  So each vertex will have
+//                 an associated color.
+//               - Our vertex shader will receive color information, so that
+//                 it can pass it to the fragment shader.
+//               - Our fragment shader will mix the vertex colors, producing
+//                 an appropriate color for the pixel.
 //
-//               These tutorials are great, or they would have been if I was
-//               using a modern PC with a modern graphics card.  You see,
-//               these tutorials were focused on OpenGL 3.3 or higher
-//               (as of Jan, 2017).
-//
-//               As it was, I had an old laptop (circa ~2009) with an old
-//               video card (GeForce 7150M / nForce 630M).  And I was running
-//               Linux, so the newest drivers I could get only supported
-//               OpenGL 2.1 (GLSL version 1.20)
-//
-//               So I went through a lot of pain and effort, and took a lot
-//               of time going through the legacy specifications that I could
-//               find online.  And I was finally able to develop a version
-//               of the hello_triangle demo program that worked with the older
-//               APIs.
+//               Note: We will try to be compatible with Mac OSX, as well as
+//                     Linux, since those are the platforms at my disposal.
 //
 //============================================================================
 
@@ -52,51 +42,35 @@ void report_error(int code, const char * description);
 void key_callback(GLFWwindow* window,
                   int key, int scancode, int action, int mode);
 
-// we don't have GLSL version 3.3 on our old PC
-//const GLchar *vertexShaderSource = "#version 330 core\n"
-//                                   "\n"
-//                                   "layout (location = 0) in vec3 position;\n"
-//                                   "\n"
-//                                   "void main()\n"
-//                                   "{\n"
-//                                   "    gl_Position = vec4(position.x,\n"
-//                                   "                       position.y,\n"
-//                                   "                       position.z,\n"
-//                                   "                       1.0);\n"
-//                                   "}\n";
-//
-//const GLchar *fragmentShaderSource = "#version 330 core\n"
-//                                     "\n"
-//                                     "out vec4 color;\n"
-//                                     "\n"
-//                                     "void main()\n"
-//                                     "{\n"
-//                                     "    color = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-//                                     "}\n";
-
 const GLchar *vertexShaderSource = "#if __VERSION__ >= 140\n"
                                    "    in vec3 position;\n"
+                                   "    in vec3 vertex_color;\n"
+                                   "    out vec3 color;\n"
                                    "#else\n"
                                    "    attribute vec3 position;\n"
+                                   "    attribute vec3 vertex_color;\n"
+                                   "    varying vec3 color;\n"
                                    "#endif\n"
                                    "\n"
                                    "void main()\n"
                                    "{\n"
+                                   "    color = vertex_color;\n"
                                    "    gl_Position = vec4(position, 1.0);\n"
                                    "}\n";
 
 const GLchar *fragmentShaderSource = "#if __VERSION__ >= 140\n"
+                                     "    in vec3 color;\n"
                                      "    varying out vec4 out_color;\n"
+                                     "#else\n"
+                                     "    attribute vec3 color;\n"
                                      "#endif\n"
                                      "\n"
                                      "void main()\n"
                                      "{\n"
                                      "#if __VERSION__ >= 140\n"
-                                     "    out_color = vec4(1.0f, 0.5f, 0.2f,\n"
-                                     "                     1.0f);\n"
+                                     "    out_color = vec4(color, 1.0f);\n"
                                      "#else\n"
-                                     "    gl_FragColor = vec4(1.0, 0.5, 0.2,\n"
-                                     "                        1.0);\n"
+                                     "    gl_FragColor = vec4(color, 1.0);\n"
                                      "#endif\n"
                                      "}\n";
 
@@ -106,28 +80,20 @@ int main() {
         cout << "GLFW Initialization Failed!!" << endl;
         return -1;
     }
-    else {
-        cout << "Initialized GLFW..." << endl;
-    }
 
     glfwSetErrorCallback(&report_error);
-    cout << "Set GLFW Error Callback..." << endl;
 
     ConfigureGLFW();
-    cout << "Initialized GLFW Window Hints..." << endl;
 
 
     GLFWwindow* window = glfwCreateWindow(800, 600,
-                                          "Hello OpenGL",
+                                          "OpenGL Color Triangle",
                                           nullptr, nullptr);
 
     if (window == nullptr) {
         cout << "Failed to create GLFW window" << endl;
         glfwTerminate();
         return -1;
-    }
-    else {
-        cout << "Created GLFW window" << endl;
     }
 
     glfwMakeContextCurrent(window);
@@ -138,9 +104,6 @@ int main() {
     if (glewInit() != GLEW_OK) {
         cout << "Failed to initialize GLEW" << endl;
         return -1;
-    }
-    else {
-        cout << "Initialized GLEW..." << endl;
     }
 
     cout << "OpenGL version supported by this platform: "
@@ -190,8 +153,16 @@ int main() {
     GLuint shaderProgram;
     shaderProgram = glCreateProgram();
 
+    // insert location binding code here
+    // Note: using OGL 3.3 or higher, we could put location
+    //       information inside the GLSL code.  But Macs use
+    //       OGL 3.2 and Linux can vary widely.
+    glBindAttribLocation(shaderProgram, 0, "position");
+    glBindAttribLocation(shaderProgram, 1, "color");
+
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
+
     glLinkProgram(shaderProgram);
 
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
@@ -211,31 +182,52 @@ int main() {
                           0.5f, -0.5f, 0.0f,
                           0.0f,  0.5f, 0.0f};
 
-    // Initialize our Vertex Array Object
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
+    GLfloat colors[] = {1.f, 0.f, 0.f,
+                        0.f, 1.f, 0.f,
+                        0.f, 0.f, 1.f};
 
-    // Initialize the vertex buffer so we can load data to it
-    GLuint VBO;
+    GLuint VAO, VBO;
+    GLuint colorsVBO = 0;
+
+    // Initialize our Vertex Array Object and buffer objects
+    glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &colorsVBO);
 
     // bind our Vertex Array Object first
     glBindVertexArray(VAO);
 
+    // Initialize the vertex buffer and the color buffer objects so we can
     // Then bind and set our buffers
+    // Note: the order in which things are done here is important. The order
+    //       of operations that works for me is:
+    //       - bind the buffer object
+    //       - copy the data into the buffer
+    //       - Set the attribute pointer
+    //       - move on to the next buffer object
+    //       I think the determining factor is that we can only operate
+    //       on a single bound buffer at a time.
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
                  GL_STATIC_DRAW);
-
-    // Tell OpenGL how it should interpret the vertex array data
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
                           3 * sizeof(GLfloat), (GLvoid*)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, colorsVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors,
+                 GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                          3 * sizeof(GLfloat), (GLvoid*)0);
+
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
     // Note that this is allowed, the call to glVertexAttribPointer
     // registered VBO as the currently bound vertex buffer object so
     // afterwards we can safely unbind.
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Note: Remember, do NOT unbind the EBO, keep it bound to this VAO
 
     // Unbind the Vertex Array Object.
     // (It is always good to unbind any buffer/array to prevent strange bugs)
@@ -257,7 +249,7 @@ int main() {
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
 
-        // draw
+        // draw our colored triangle
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // cleanup
@@ -273,6 +265,7 @@ int main() {
     // Properly deallocate all resources once we are done.
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &colorsVBO);
 
     glfwTerminate();
     cout << "Terminated GLFW..." << endl;

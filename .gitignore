@@ -27,3 +27,7 @@
 *.exe
 *.out
 *.app
+/Debug/
+/Release/
+/HelloColorTriangle/
+/HelloTriangle/
